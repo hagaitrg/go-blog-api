@@ -10,8 +10,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var blogCollection *mongo.Collection = configs.GetCollection(configs.DB, "go-blogs")
@@ -41,7 +42,6 @@ func Create(c * gin.Context){
 	}
 
 	newBlog := models.Blog{
-		Id: primitive.NewObjectID(),
 		Title: blog.Title,
 		Content: blog.Content,
 		Slug: blog.Slug,
@@ -61,9 +61,33 @@ func Create(c * gin.Context){
 
 	c.JSON(http.StatusCreated, handlers.BlogResponse{
 		Success:true,
-		Code: 200,
+		Code: 201,
 		Message: "Successfully create blog!",
 		Data: map[string]interface{}{"data":result}})
-
-
 }
+
+func Show(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	id := c.Param("id")
+	var blog models.Blog 
+	defer cancel()
+
+	objId, _ := primitive.ObjectIDFromHex(id)
+
+	err := blogCollection.FindOne(ctx, bson.M{"_id":objId}).Decode(&blog)
+	if err != nil {
+		c.JSON(http.StatusNotFound, handlers.BlogResponse{
+			Success:false,
+			Code: 404,
+			Message: "Blog Not Found!",
+			Data: map[string]interface{}{"data":err.Error()}})
+		return
+	}
+
+	c.JSON(http.StatusOK, handlers.BlogResponse{
+		Success:true,
+		Code: 200,
+		Message: "Successfully get all blog!",
+		Data: map[string]interface{}{"data":blog}})
+}
+

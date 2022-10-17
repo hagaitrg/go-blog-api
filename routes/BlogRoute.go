@@ -7,4 +7,5 @@ import (
 
 func BlogRoute(router *gin.Engine){
 	router.POST("/api/v1/blogs", controllers.Create)
+	router.GET("/api/v1/blogs/:id", controllers.Show)
 }
