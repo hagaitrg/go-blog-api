@@ -91,3 +91,64 @@ func Show(c *gin.Context) {
 		Data: map[string]interface{}{"data":blog}})
 }
 
+func Update(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	id := c.Param("id")
+	var blog models.Blog 
+	defer cancel()
+	objId, _ := primitive.ObjectIDFromHex(id)
+
+	if err := c.BindJSON(&blog); err!= nil {
+		c.JSON(http.StatusBadRequest, handlers.BlogResponse{
+			Success:false,
+			Code: 400,
+			Message: "Failed!",
+			Data: map[string]interface{}{"data":err.Error()}})
+		return 
+	}
+
+	if validationErr := validate.Struct(&blog); validationErr != nil {
+		c.JSON(http.StatusBadRequest, handlers.BlogResponse{
+			Success:false,
+			Code: 400,
+			Message: "Validation error",
+			Data: map[string]interface{}{"data":validationErr.Error()}})
+		return 
+	}
+
+	update := bson.M{
+		"title":blog.Title,
+		"content":blog.Content,
+		"slug":blog.Slug,
+		"updated_at" : time.Now().UTC()}
+	result, err := blogCollection.UpdateOne(ctx, bson.M{"_id":objId}, bson.M{"$set":update})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, handlers.BlogResponse{
+			Success:false,
+			Code: 500,
+			Message: "Failed to update blog!",
+			Data: map[string]interface{}{"data":err.Error()}})
+		return 
+	}
+
+	var updateBlog models.Blog
+	if result.MatchedCount == 1{
+		err := blogCollection.FindOne(ctx, bson.M{"_id":objId}).Decode(&updateBlog)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, handlers.BlogResponse{
+				Success:false,
+				Code: 500,
+				Message: "Failed to get blog!",
+				Data: map[string]interface{}{"data":err.Error()}})
+			return 
+		}
+	}
+
+	c.JSON(http.StatusOK, handlers.BlogResponse{
+		Success:true,
+		Code: 200,
+		Message: "Successfully to get blog!",
+		Data: map[string]interface{}{"data":updateBlog}})
+	return 
+}
+
