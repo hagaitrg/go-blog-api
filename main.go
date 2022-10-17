@@ -1,17 +1,17 @@
 package main
 
 import (
-	"gin.com/gin/models"
-	"gin.com/gin/controllers"
+	"gin.com/gin/configs"
+	"gin.com/gin/routes"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	r := gin.Default()
-	models.ConnectionDatabase()
-	r.GET("api/v1/blogs", controllers.Index)
-	r.GET("api/v1/blogs/:id", controllers.Show)
-	r.POST("api/v1/blogs", controllers.Create)
+	router := gin.Default()
 
-	r.Run()
+	configs.ConnectionDB()
+
+	routes.BlogRoute(router)
+
+	router.Run("localhost:3000")
 }

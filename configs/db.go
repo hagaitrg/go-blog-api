@@ -4,27 +4,33 @@ import (
 	"fmt"
 	"log"
 	"time"
-	"os"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func connection() *mongo.Client{
-	URL_DB := os.Getenv("MONGO_URL")
-	client, err:= mongo.NewClient(options.Client().ApplyURI(URL_DB))
-
+func ConnectionDB() *mongo.Client{
+	client, err := mongo.NewClient(options.Client().ApplyURI(EnvURI()))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err = client.Connect(ctx)
-	defer cancel()
-
-	if err != nil {
+	if err != nil{
 		log.Fatal(err)
 	}
 
-	fmt.Println("Connected to Mongo DB")
-	return client
+	err=client.Ping(ctx, nil)
+	if err != nil{
+		log.Fatal(err)
+	}
+	fmt.Println("Connected to MongoDB")
+	return client 
+}
+
+var DB *mongo.Client = ConnectionDB()
+
+func GetCollection(client *mongo.Client, collectionName string) *mongo.Collection{
+	collection := client.Database("golang_API").Collection(collectionName)
+	return collection
 }
